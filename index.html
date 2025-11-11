@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Backwaren Bestellen</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- Firebase SDK (modular) -->
+  <script type="module">
+    // Firebase modular SDK via CDN (hiervon wird im JS Gebrauch gemacht)
+    // (Keine Konfig hier — die initialisierung ist in js/app.js)
+  </script>
+</head>
+<body>
+  <header>
+    <h1>Backstube — Online Bestellungen</h1>
+  </header>
+
+  <main>
+    <section id="product-list-section">
+      <h2>Unsere Produkte</h2>
+      <div id="product-list" class="grid"></div>
+    </section>
+
+    <section id="cart-section">
+      <h2>Warenkorb</h2>
+      <div id="cart-items"></div>
+      <div id="summary">
+        <div>Zwischensumme: <span id="subtotal">0.00 €</span></div>
+        <div>Lieferkosten: <span id="delivery">0.00 €</span></div>
+        <div><strong>Gesamt: <span id="total">0.00 €</span></strong></div>
+      </div>
+
+      <h3>Deine Daten</h3>
+      <label>
+        Name
+        <input id="customer-name" type="text" placeholder="Dein Name" />
+      </label>
+
+      <h3>Extrawünsche</h3>
+      <textarea id="extras" rows="3" placeholder="z.B. Kein Zucker, Glutenfrei, etc."></textarea>
+
+      <button id="place-order">Bestellung absenden</button>
+
+      <div id="message"></div>
+    </section>
+  </main>
+
+  <footer>
+    <small>Admin? <a href="admin.html">Zum Adminbereich</a></small>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
