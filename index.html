@@ -1,55 +1,306 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Backwaren Bestellen</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <!-- Firebase SDK (modular) -->
-  <script type="module">
-    // Firebase modular SDK via CDN (hiervon wird im JS Gebrauch gemacht)
-    // (Keine Konfig hier — die initialisierung ist in js/app.js)
-  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bäckerei Online-Shop</title>
+<style>
+  body {
+    margin: 0;
+    font-family: "Amazon Ember", Arial, sans-serif;
+    background-color: #f8f9fa;
+    color: #111;
+  }
+  header {
+    background-color: #232f3e;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 1.4rem; }
+  main {
+    display: flex; flex-wrap: wrap;
+    justify-content: center; gap: 1rem; padding: 1rem;
+  }
+  .product-card {
+    width: 220px; background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+  }
+  .product-card img { width: 100%; height: 160px; object-fit: cover; }
+  .product-card .info { padding: 0.6rem; }
+  .product-card button {
+    background: #ffa41c; border: none;
+    padding: 8px; font-weight: bold;
+    cursor: pointer; border-radius: 0 0 8px 8px;
+  }
+  .cart {
+    background: white; border-radius: 8px;
+    padding: 1rem; margin: 1rem auto;
+    max-width: 400px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .cart-item { display: flex; justify-content: space-between; padding: 0.3rem 0; }
+  .admin-panel {
+    display: none; background: #fff;
+    margin: 1rem auto; padding: 1rem;
+    max-width: 900px; border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  input, textarea {
+    width: 100%; padding: 6px;
+    margin-top: 4px; margin-bottom: 8px;
+    border-radius: 4px; border: 1px solid #ccc;
+  }
+  .admin-login { text-align: right; }
+  .order { border-bottom: 1px solid #ddd; padding: 0.5rem 0; }
+</style>
 </head>
 <body>
-  <header>
-    <h1>Backstube — Online Bestellungen</h1>
-  </header>
+<header>
+  <h1>🍞 Bäckerei Online-Shop</h1>
+  <div class="admin-login">
+    <button id="adminLoginBtn">Admin Login</button>
+    <button id="adminLogoutBtn" style="display:none;">Logout</button>
+  </div>
+</header>
 
-  <main>
-    <section id="product-list-section">
-      <h2>Unsere Produkte</h2>
-      <div id="product-list" class="grid"></div>
-    </section>
+<main id="shopView"></main>
 
-    <section id="cart-section">
-      <h2>Warenkorb</h2>
-      <div id="cart-items"></div>
-      <div id="summary">
-        <div>Zwischensumme: <span id="subtotal">0.00 €</span></div>
-        <div>Lieferkosten: <span id="delivery">0.00 €</span></div>
-        <div><strong>Gesamt: <span id="total">0.00 €</span></strong></div>
-      </div>
+<div class="cart">
+  <h2>🛒 Dein Warenkorb</h2>
+  <div id="cartItems"></div>
+  <p><b>Zwischensumme:</b> <span id="subtotal">0.00 €</span></p>
+  <p><b>Lieferkosten:</b> <span id="delivery">2.50 €</span></p>
+  <p><b>Gesamt:</b> <span id="total">0.00 €</span></p>
+  <label>Name:<input id="customerName"></label>
+  <label>Extrawünsche:<textarea id="extras"></textarea></label>
+  <button id="submitOrder">Bestellung abschicken</button>
+  <div id="orderMsg"></div>
+</div>
 
-      <h3>Deine Daten</h3>
-      <label>
-        Name
-        <input id="customer-name" type="text" placeholder="Dein Name" />
-      </label>
+<!-- Admin Panel -->
+<div class="admin-panel" id="adminPanel">
+  <h2>📦 Bestellungen</h2>
+  <div id="ordersList"></div>
 
-      <h3>Extrawünsche</h3>
-      <textarea id="extras" rows="3" placeholder="z.B. Kein Zucker, Glutenfrei, etc."></textarea>
+  <h2>🧁 Produkte verwalten</h2>
+  <div id="productAdminList"></div>
 
-      <button id="place-order">Bestellung absenden</button>
+  <h3>Neues Produkt hinzufügen</h3>
+  <input id="newProdName" placeholder="Name">
+  <input id="newProdPrice" type="number" step="0.01" placeholder="Preis">
+  <input id="newProdImage" placeholder="Bild-URL">
+  <button id="addProductBtn">Hinzufügen</button>
+  <div id="adminMsg"></div>
+</div>
 
-      <div id="message"></div>
-    </section>
-  </main>
+<!-- Firebase Script -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+  import { getFirestore, collection, getDocs, addDoc, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+  import { getDatabase, ref, push, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
 
-  <footer>
-    <small>Admin? <a href="admin.html">Zum Adminbereich</a></small>
-  </footer>
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    databaseURL: "YOUR_DATABASE_URL",
+    appId: "YOUR_APP_ID"
+  };
 
-  <script type="module" src="js/app.js"></script>
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const rtdb = getDatabase(app);
+
+  const shopView = document.getElementById("shopView");
+  const cartItems = document.getElementById("cartItems");
+  const subtotalEl = document.getElementById("subtotal");
+  const totalEl = document.getElementById("total");
+  const orderMsg = document.getElementById("orderMsg");
+  const adminPanel = document.getElementById("adminPanel");
+  const adminLoginBtn = document.getElementById("adminLoginBtn");
+  const adminLogoutBtn = document.getElementById("adminLogoutBtn");
+  const ordersList = document.getElementById("ordersList");
+  const productAdminList = document.getElementById("productAdminList");
+
+  let products = [];
+  let cart = {};
+  const deliveryCost = 2.5;
+
+  async function setupFirestoreIfEmpty() {
+    const snap = await getDocs(collection(db, "products"));
+    if (snap.empty) {
+      const defaults = [
+        { name: "Brezeln", price: 1.20, imageURL: "https://images.unsplash.com/photo-1576186726110-217f3af61b58?w=500" },
+        { name: "Laugenstangen", price: 1.50, imageURL: "https://images.unsplash.com/photo-1587391652299-2e72d2e2637f?w=500" },
+        { name: "Donut", price: 2.00, imageURL: "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=500" },
+        { name: "Pizza", price: 3.00, imageURL: "https://images.unsplash.com/photo-1601924638867-3ec7b09c0c73?w=500" },
+        { name: "Pizza Salami", price: 3.50, imageURL: "https://images.unsplash.com/photo-1600628422011-44e4c9c2f55d?w=500" }
+      ];
+      for (const p of defaults) {
+        await addDoc(collection(db, "products"), p);
+      }
+      console.log("📦 Firestore automatisch initialisiert.");
+    }
+  }
+
+  async function loadProducts() {
+    await setupFirestoreIfEmpty();
+    const snap = await getDocs(collection(db, "products"));
+    products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderProducts();
+  }
+
+  function renderProducts() {
+    shopView.innerHTML = "";
+    products.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "product-card";
+      card.innerHTML = `
+        <img src="${p.imageURL || ''}">
+        <div class="info">
+          <h3>${p.name}</h3>
+          <p><b>${Number(p.price).toFixed(2)} €</b></p>
+        </div>
+        <button>Kaufen</button>`;
+      card.querySelector("button").onclick = () => {
+        const qty = parseInt(prompt("Anzahl:", "1"));
+        if (qty > 0) addToCart(p, qty);
+      };
+      shopView.appendChild(card);
+    });
+  }
+
+  function addToCart(prod, qty) {
+    if (!cart[prod.id]) cart[prod.id] = { ...prod, qty: 0 };
+    cart[prod.id].qty += qty;
+    renderCart();
+  }
+
+  function renderCart() {
+    cartItems.innerHTML = "";
+    let subtotal = 0;
+    Object.values(cart).forEach(i => {
+      subtotal += i.qty * i.price;
+      const div = document.createElement("div");
+      div.className = "cart-item";
+      div.textContent = `${i.qty}× ${i.name} - ${(i.qty * i.price).toFixed(2)}€`;
+      cartItems.appendChild(div);
+    });
+    subtotalEl.textContent = subtotal.toFixed(2) + " €";
+    totalEl.textContent = (subtotal + deliveryCost).toFixed(2) + " €";
+  }
+
+  document.getElementById("submitOrder").onclick = async () => {
+    const name = document.getElementById("customerName").value.trim();
+    const extras = document.getElementById("extras").value.trim();
+    if (!name || Object.keys(cart).length === 0) {
+      orderMsg.textContent = "Bitte Name eingeben und Produkte wählen.";
+      return;
+    }
+    const orderData = {
+      customerName: name, extras,
+      items: Object.values(cart),
+      subtotal: Object.values(cart).reduce((a,b)=>a+b.price*b.qty,0),
+      deliveryCost, total: Object.values(cart).reduce((a,b)=>a+b.price*b.qty,0)+deliveryCost,
+      status: "open", timestamp: Date.now()
+    };
+    await set(push(ref(rtdb, "orders")), orderData);
+    orderMsg.textContent = "✅ Bestellung gesendet!";
+    cart = {}; renderCart();
+  };
+
+  adminLoginBtn.onclick = async () => {
+    const email = prompt("Admin E-Mail:");
+    const pass = prompt("Passwort:");
+    await signInWithEmailAndPassword(auth, email, pass).catch(e=>alert(e.message));
+  };
+  adminLogoutBtn.onclick = () => signOut(auth);
+
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      adminPanel.style.display = "block";
+      adminLoginBtn.style.display = "none";
+      adminLogoutBtn.style.display = "inline-block";
+      listenOrders();
+      loadProductsAdmin();
+    } else {
+      adminPanel.style.display = "none";
+      adminLoginBtn.style.display = "inline-block";
+      adminLogoutBtn.style.display = "none";
+    }
+  });
+
+  function listenOrders() {
+    const ordersRef = ref(rtdb, "orders");
+    onValue(ordersRef, snap => {
+      const orders = snap.val() || {};
+      ordersList.innerHTML = "";
+      Object.entries(orders).forEach(([id,o])=>{
+        const div=document.createElement("div");
+        div.className="order";
+        div.innerHTML=`
+          <b>${o.customerName}</b> – ${new Date(o.timestamp).toLocaleString()}<br>
+          ${o.items.map(i=>`${i.qty}× ${i.name}`).join(", ")}<br>
+          Gesamt: ${o.total.toFixed(2)} €<br>
+          <button data-id="${id}" class="doneBtn">Erledigt</button>
+          <button data-id="${id}" class="delBtn">Löschen</button>`;
+        ordersList.appendChild(div);
+      });
+      ordersList.querySelectorAll(".doneBtn").forEach(b=>{
+        b.onclick=()=>update(ref(rtdb,"orders/"+b.dataset.id),{status:"done"});
+      });
+      ordersList.querySelectorAll(".delBtn").forEach(b=>{
+        b.onclick=()=>remove(ref(rtdb,"orders/"+b.dataset.id));
+      });
+    });
+  }
+
+  async function loadProductsAdmin() {
+    const snap = await getDocs(collection(db, "products"));
+    productAdminList.innerHTML = "";
+    snap.forEach(docu=>{
+      const p={id:docu.id,...docu.data()};
+      const row=document.createElement("div");
+      row.innerHTML=`
+        <input id="n_${p.id}" value="${p.name}">
+        <input id="p_${p.id}" type="number" step="0.01" value="${p.price}">
+        <input id="i_${p.id}" value="${p.imageURL}">
+        <button id="s_${p.id}">Speichern</button>
+        <button id="d_${p.id}">Löschen</button>`;
+      productAdminList.appendChild(row);
+      document.getElementById(`s_${p.id}`).onclick=async()=>{
+        await updateDoc(doc(db,"products",p.id),{
+          name:document.getElementById(`n_${p.id}`).value,
+          price:parseFloat(document.getElementById(`p_${p.id}`).value),
+          imageURL:document.getElementById(`i_${p.id}`).value
+        });
+      };
+      document.getElementById(`d_${p.id}`).onclick=async()=>{
+        await deleteDoc(doc(db,"products",p.id)); loadProductsAdmin();
+      };
+    });
+  }
+
+  document.getElementById("addProductBtn").onclick = async () => {
+    const n=document.getElementById("newProdName").value;
+    const p=parseFloat(document.getElementById("newProdPrice").value);
+    const i=document.getElementById("newProdImage").value;
+    if(!n||isNaN(p))return;
+    await addDoc(collection(db,"products"),{name:n,price:p,imageURL:i});
+    document.getElementById("adminMsg").textContent="✅ Produkt hinzugefügt!";
+    loadProductsAdmin();
+  };
+
+  loadProducts();
+</script>
 </body>
 </html>
