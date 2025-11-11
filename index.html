@@ -107,13 +107,15 @@
   import { getFirestore, collection, getDocs, addDoc, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
   import { getDatabase, ref, push, set, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    databaseURL: "YOUR_DATABASE_URL",
-    appId: "YOUR_APP_ID"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyAltAKHTuGKa8Itfn9r-EZ1j_dXNubRmys",
+  authDomain: "ginger-6408f.firebaseapp.com",
+  databaseURL: "https://ginger-6408f-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "ginger-6408f",
+  storageBucket: "ginger-6408f.firebasestorage.app",
+  messagingSenderId: "17233327009",
+  appId: "1:17233327009:web:6b28779da597c1f9b551e0"
+};
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
