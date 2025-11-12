@@ -31,15 +31,14 @@
         const { useState, useEffect } = React;
         
         // ⚠️ WICHTIG: Hier deine Firebase Config einfügen!
-        const firebaseConfig = {
-  apiKey: "AIzaSyBWB_a6Dm1cpxtUf6H3WvS1BjMK8ZobXs8",
-  authDomain: "penny-375d8.firebaseapp.com",
-  projectId: "penny-375d8",
-  storageBucket: "penny-375d8.firebasestorage.app",
-  messagingSenderId: "375895348584",
-  appId: "1:375895348584:web:8cd2e703497eb15f29b2dd"
+        const firebaseConfig = {const firebaseConfig = {
+    apiKey: "DEIN_API_KEY",
+    authDomain: "DEIN_PROJECT.firebaseapp.com",
+    projectId: "DEIN_PROJECT_ID",
+    storageBucket: "DEIN_PROJECT.appspot.com",
+    messagingSenderId: "DEINE_SENDER_ID",
+    appId: "DEINE_APP_ID"
 };
-
         // Firebase initialisieren
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
