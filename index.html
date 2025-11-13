@@ -4,10 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bäckerei Bestellsystem</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- React -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
         body {
             margin: 0;
@@ -20,6 +29,27 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
+
+        // ⚠️ WICHTIG: Hier deine Firebase Config einfügen!
+        const firebaseConfig = {
+            apiKey: "AIzaSyBWB_a6Dm1cpxtUf6H3WvS1BjMK8ZobXs8",
+            authDomain: "penny-375d8.firebaseapp.com",
+            projectId: "penny-375d8",
+            storageBucket: "penny-375d8.firebasestorage.app",
+            messagingSenderId: "375895348584",
+            appId: "1:375895348584:web:8cd2e703497eb15f29b2dd"
+        };
+
+        // Firebase initialisieren
+        let db = null;
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            db = firebase.firestore();
+        } catch (error) {
+            console.error("Firebase Initialisierungsfehler:", error);
+        }
 
         // Lucide Icons als SVG
         const ShoppingCart = ({ size = 24 }) => (
@@ -68,90 +98,143 @@
             </svg>
         );
 
-        // LocalStorage Helper
-        const useLocalStorage = (key, initialValue) => {
-            const [storedValue, setStoredValue] = useState(() => {
-                try {
-                    const item = window.localStorage.getItem(key);
-                    return item ? JSON.parse(item) : initialValue;
-                } catch (error) {
-                    return initialValue;
-                }
-            });
-
-            const setValue = (value) => {
-                try {
-                    setStoredValue(value);
-                    window.localStorage.setItem(key, JSON.stringify(value));
-                } catch (error) {
-                    console.error(error);
-                }
-            };
-
-            return [storedValue, setValue];
-        };
-
-        // Data Management Hook
+        // Firebase Hook
         const useFirebase = () => {
-            const [products, setProducts] = useLocalStorage('bakery_products', [
-                { 
-                    id: 1, 
-                    name: 'Croissant', 
-                    price: 2.50, 
-                    imageUrl: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400', 
-                    description: 'Buttrig und knusprig',
-                    totalSold: 0
-                },
-                { 
-                    id: 2, 
-                    name: 'Brezel', 
-                    price: 1.80, 
-                    imageUrl: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400', 
-                    description: 'Frisch gebacken',
-                    totalSold: 0
-                },
-                { 
-                    id: 3, 
-                    name: 'Baguette', 
-                    price: 3.20, 
-                    imageUrl: 'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=400', 
-                    description: 'Französisches Baguette',
-                    totalSold: 0
-                },
-                { 
-                    id: 4, 
-                    name: 'Brötchen', 
-                    price: 0.60, 
-                    imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400', 
-                    description: 'Klassisches Brötchen',
-                    totalSold: 0
-                },
-            ]);
-            
-            const [orders, setOrders] = useLocalStorage('bakery_orders', []);
+            const [products, setProducts] = useState([]);
+            const [orders, setOrders] = useState([]);
             const [deliveryCost] = useState(3.50);
+            const [loading, setLoading] = useState(true);
 
-            const addOrder = (order) => {
+            // Load products from Firestore
+            useEffect(() => {
+                if (!db) {
+                    console.error("Firestore nicht verfügbar");
+                    setLoading(false);
+                    return;
+                }
+
+                const unsubscribe = db.collection('products')
+                    .onSnapshot(
+                        (snapshot) => {
+                            const productsData = snapshot.docs.map(doc => ({
+                                id: doc.id,
+                                ...doc.data()
+                            }));
+                            
+                            if (productsData.length === 0) {
+                                // Initial products if none exist
+                                const initialProducts = [
+                                    { 
+                                        name: 'Croissant', 
+                                        price: 2.50, 
+                                        imageUrl: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400', 
+                                        description: 'Buttrig und knusprig',
+                                        totalSold: 0
+                                    },
+                                    { 
+                                        name: 'Brezel', 
+                                        price: 1.80, 
+                                        imageUrl: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400', 
+                                        description: 'Frisch gebacken',
+                                        totalSold: 0
+                                    },
+                                    { 
+                                        name: 'Baguette', 
+                                        price: 3.20, 
+                                        imageUrl: 'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=400', 
+                                        description: 'Französisches Baguette',
+                                        totalSold: 0
+                                    },
+                                    { 
+                                        name: 'Brötchen', 
+                                        price: 0.60, 
+                                        imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400', 
+                                        description: 'Klassisches Brötchen',
+                                        totalSold: 0
+                                    },
+                                ];
+                                
+                                initialProducts.forEach(product => {
+                                    db.collection('products').add(product).catch(err => {
+                                        console.error("Fehler beim Hinzufügen von Produkt:", err);
+                                    });
+                                });
+                                setProducts([]);
+                            } else {
+                                setProducts(productsData);
+                            }
+                            setLoading(false);
+                        },
+                        (error) => {
+                            console.error("Fehler beim Laden der Produkte:", error);
+                            alert("Fehler: Firestore Regeln müssen angepasst werden! Gehe zu Firebase Console → Firestore → Rules und erlaube Read/Write.");
+                            setLoading(false);
+                        }
+                    );
+
+                return () => unsubscribe();
+            }, []);
+
+            // Load orders from Firestore
+            useEffect(() => {
+                if (!db) return;
+
+                const unsubscribe = db.collection('orders')
+                    .orderBy('timestamp', 'desc')
+                    .onSnapshot(
+                        (snapshot) => {
+                            const ordersData = snapshot.docs.map(doc => ({
+                                id: doc.id,
+                                ...doc.data()
+                            }));
+                            setOrders(ordersData);
+                        },
+                        (error) => {
+                            console.error("Fehler beim Laden der Bestellungen:", error);
+                            // Versuche ohne orderBy wenn Index fehlt
+                            db.collection('orders').onSnapshot((snapshot) => {
+                                const ordersData = snapshot.docs.map(doc => ({
+                                    id: doc.id,
+                                    ...doc.data()
+                                }));
+                                setOrders(ordersData.sort((a, b) => {
+                                    const timeA = a.timestamp?.toMillis?.() || 0;
+                                    const timeB = b.timestamp?.toMillis?.() || 0;
+                                    return timeB - timeA;
+                                }));
+                            });
+                        }
+                    );
+
+                return () => unsubscribe();
+            }, []);
+
+            const addOrder = async (order) => {
                 const newOrder = {
                     ...order,
-                    id: Date.now(),
-                    timestamp: new Date().toISOString(),
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     status: 'pending'
                 };
-                setOrders(prev => [newOrder, ...prev]);
+
+                // Add order to Firestore
+                await db.collection('orders').add(newOrder);
 
                 // Update product sales statistics
-                const updatedProducts = products.map(p => {
-                    const orderItem = order.items.find(item => item.id === p.id);
-                    if (orderItem) {
-                        return { ...p, totalSold: (p.totalSold || 0) + orderItem.quantity };
+                for (const item of order.items) {
+                    const productRef = db.collection('products').doc(item.id);
+                    const productDoc = await productRef.get();
+                    
+                    if (productDoc.exists) {
+                        const currentSold = productDoc.data().totalSold || 0;
+                        await productRef.update({
+                            totalSold: currentSold + item.quantity
+                        });
                     }
-                    return p;
-                });
-                setProducts(updatedProducts);
+                }
 
-                console.log('Order Analytics:', {
-                    orderId: newOrder.id,
+                // Log analytics
+                await db.collection('analytics').add({
+                    type: 'order',
                     items: order.items.map(item => ({
                         productId: item.id,
                         productName: item.name,
@@ -159,34 +242,38 @@
                         price: item.price
                     })),
                     totalValue: order.total,
-                    timestamp: newOrder.timestamp
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
             };
 
-            const updateOrder = (id, updates) => {
-                setOrders(prev => prev.map(o => o.id === id ? { ...o, ...updates } : o));
+            const updateOrder = async (id, updates) => {
+                await db.collection('orders').doc(id).update(updates);
             };
 
-            const deleteOrder = (id) => {
-                setOrders(prev => prev.filter(o => o.id !== id));
+            const deleteOrder = async (id) => {
+                await db.collection('orders').doc(id).delete();
             };
 
-            const updateProduct = (id, updates) => {
-                setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+            const updateProduct = async (id, updates) => {
+                await db.collection('products').doc(id).update(updates);
             };
 
-            const addProduct = (product) => {
-                setProducts(prev => [...prev, { ...product, id: Date.now(), totalSold: 0 }]);
+            const addProduct = async (product) => {
+                await db.collection('products').add({
+                    ...product,
+                    totalSold: 0
+                });
             };
 
-            const deleteProduct = (id) => {
-                setProducts(prev => prev.filter(p => p.id !== id));
+            const deleteProduct = async (id) => {
+                await db.collection('products').doc(id).delete();
             };
 
             return {
                 products,
                 orders,
                 deliveryCost,
+                loading,
                 addOrder,
                 updateOrder,
                 deleteOrder,
@@ -201,6 +288,7 @@
                 products,
                 orders,
                 deliveryCost,
+                loading,
                 addOrder,
                 updateOrder,
                 deleteOrder,
@@ -244,13 +332,13 @@
                 return subtotal + deliveryCost;
             };
 
-            const submitOrder = () => {
+            const submitOrder = async () => {
                 if (!customerName.trim() || cart.length === 0) {
                     alert('Bitte Name eingeben und Produkte auswählen!');
                     return;
                 }
 
-                addOrder({
+                await addOrder({
                     customerName,
                     items: cart,
                     specialRequests,
@@ -276,13 +364,22 @@
             };
 
             const formatTime = (timestamp) => {
-                const date = new Date(timestamp);
+                if (!timestamp) return 'Lädt...';
+                const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
                 return date.toLocaleString('de-DE');
             };
 
             const handleImageError = (productId) => {
                 setImageError(prev => ({ ...prev, [productId]: true }));
             };
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center">
+                        <div className="text-2xl text-orange-600 font-bold">Lädt...</div>
+                    </div>
+                );
+            }
 
             // Customer View - Products
             if (view === 'products' && !isAdmin) {
@@ -604,7 +701,7 @@
 
                             {/* Sales Statistics */}
                             <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                                <h2 className="text-xl font-bold mb-4 text-gray-800">Verkaufsstatistik</h2>
+                                <h2 className="text-xl font-bold mb-4 text-gray-800">Verkaufsstatistik (Firestore)</h2>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     {products.map(product => (
                                         <div key={product.id} className="bg-orange-50 p-4 rounded-lg">
