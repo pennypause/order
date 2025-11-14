@@ -22,6 +22,22 @@
         body {
             margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            /* Hintergrundbild hinzugefügt */
+            background-image: url('https://images.unsplash.com/photo-1589339482103-65158320b37f?auto=format&fit=crop&w=1920&q=80');
+            background-attachment: fixed;
+            background-size: cover;
+            background-position: center;
+        }
+        /* Overlay für bessere Lesbarkeit */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 250, 245, 0.92); /* Heller, warmer Overlay */
+            z-index: -1;
         }
     </style>
 </head>
@@ -101,6 +117,13 @@
                 <polyline points="20 6 9 17 4 12"/>
             </svg>
         );
+        
+        const Search = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        );
 
         // --- Auth Component ---
         const AuthScreen = ({ onLogin }) => {
@@ -144,7 +167,7 @@
             };
 
             return (
-                <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
+                <div className="min-h-screen flex items-center justify-center p-4">
                     <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
                         <div className="text-center mb-8">
                             <h1 className="text-3xl font-bold text-orange-600 mb-2">Bäckerei Login</h1>
@@ -231,7 +254,7 @@
         const useFirebase = (currentUser) => {
             const [products, setProducts] = useState([]);
             const [orders, setOrders] = useState([]);
-            const [deliveryCost] = useState(3.50);
+            const [deliveryRate] = useState(0.30); // Geändert auf 0.30
             const [loading, setLoading] = useState(true);
 
             // Load products from Firestore
@@ -252,34 +275,10 @@
                             if (productsData.length === 0) {
                                 // Initial products if none exist
                                 const initialProducts = [
-                                    { 
-                                        name: 'Croissant', 
-                                        price: 2.50, 
-                                        imageUrl: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400', 
-                                        description: 'Buttrig und knusprig',
-                                        totalSold: 0
-                                    },
-                                    { 
-                                        name: 'Brezel', 
-                                        price: 1.80, 
-                                        imageUrl: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400', 
-                                        description: 'Frisch gebacken',
-                                        totalSold: 0
-                                    },
-                                    { 
-                                        name: 'Baguette', 
-                                        price: 3.20, 
-                                        imageUrl: 'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=400', 
-                                        description: 'Französisches Baguette',
-                                        totalSold: 0
-                                    },
-                                    { 
-                                        name: 'Brötchen', 
-                                        price: 0.60, 
-                                        imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400', 
-                                        description: 'Klassisches Brötchen',
-                                        totalSold: 0
-                                    },
+                                    { name: 'Croissant', price: 2.50, imageUrl: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400', description: 'Buttrig und knusprig', totalSold: 0 },
+                                    { name: 'Brezel', price: 1.80, imageUrl: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400', description: 'Frisch gebacken', totalSold: 0 },
+                                    { name: 'Baguette', price: 3.20, imageUrl: 'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=400', description: 'Französisches Baguette', totalSold: 0 },
+                                    { name: 'Brötchen', price: 0.60, imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400', description: 'Klassisches Brötchen', totalSold: 0 },
                                 ];
                                 
                                 initialProducts.forEach(product => {
@@ -318,7 +317,6 @@
                         },
                         (error) => {
                             console.error("Fehler beim Laden der Bestellungen:", error);
-                            // Fallback falls Index fehlt
                             db.collection('orders').onSnapshot((snapshot) => {
                                 const ordersData = snapshot.docs.map(doc => ({
                                     id: doc.id,
@@ -382,7 +380,7 @@
             return {
                 products,
                 orders,
-                deliveryCost,
+                deliveryRate, // Geändert
                 loading,
                 addOrder,
                 updateOrder,
@@ -408,7 +406,7 @@
             const {
                 products,
                 orders,
-                deliveryCost,
+                deliveryRate, // Geändert
                 loading,
                 addOrder,
                 updateOrder,
@@ -420,13 +418,14 @@
 
             const [cart, setCart] = useState([]);
             const [customerName, setCustomerName] = useState('');
-            const [nameError, setNameError] = useState(''); // New state for name validation
+            const [nameError, setNameError] = useState('');
             const [specialRequests, setSpecialRequests] = useState('');
             const [isAdmin, setIsAdmin] = useState(false);
             const [adminPassword, setAdminPassword] = useState('');
             const [view, setView] = useState('products');
             const [editingProduct, setEditingProduct] = useState(null);
             const [imageError, setImageError] = useState({});
+            const [searchTerm, setSearchTerm] = useState(''); // State für Suchleiste
 
             const handleLogout = () => {
                 auth.signOut();
@@ -458,13 +457,19 @@
                 }
             };
 
-            const calculateTotal = () => {
-                const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                return subtotal + deliveryCost;
+            // --- ANGEPASSTE BERECHNUNGEN ---
+            const calculateDeliveryCost = () => {
+                const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+                return totalQuantity * deliveryRate;
             };
 
+            const calculateTotal = () => {
+                const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                return subtotal + calculateDeliveryCost();
+            };
+            // --- ENDE BERECHNUNGEN ---
+
             const submitOrder = async () => {
-                // Validation
                 if (cart.length === 0) {
                     alert('Der Warenkorb ist leer!');
                     return;
@@ -475,12 +480,14 @@
                     return;
                 }
 
+                const calculatedDelivery = calculateDeliveryCost(); // Berechnete Kosten
+
                 await addOrder({
                     customerName,
                     items: cart,
                     specialRequests,
                     total: calculateTotal(),
-                    deliveryCost
+                    deliveryCost: calculatedDelivery // Gespeicherte Kosten
                 });
 
                 alert('Bestellung erfolgreich aufgegeben!');
@@ -510,10 +517,16 @@
             const handleImageError = (productId) => {
                 setImageError(prev => ({ ...prev, [productId]: true }));
             };
+            
+            // Gefilterte Produkte für die Suche
+            const filteredProducts = products.filter(product => 
+                product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                product.description.toLowerCase().includes(searchTerm.toLowerCase())
+            );
 
             if (authLoading || (currentUser && loading)) {
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center">
+                    <div className="min-h-screen flex items-center justify-center">
                         <div className="text-2xl text-orange-600 font-bold animate-pulse">Lade Bäckerei...</div>
                     </div>
                 );
@@ -526,7 +539,7 @@
             // Customer View - Products
             if (view === 'products' && !isAdmin) {
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-4">
+                    <div className="min-h-screen p-4">
                         <div className="max-w-6xl mx-auto">
                             <header className="bg-white rounded-lg shadow-lg p-6 mb-6">
                                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -558,30 +571,42 @@
                                         </button>
                                     </div>
                                 </div>
+                                {/* Suchleiste */}
+                                <div className="mt-6 relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Produkte suchen (z.B. Brezel, knusprig...)"
+                                        className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                        <Search size={20} />
+                                    </div>
+                                </div>
                             </header>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {products.map(product => (
+                                {filteredProducts.map(product => (
                                     <div
                                         key={product.id}
                                         className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow group"
-                                        // Removed onClick={addToCart} from here
                                     >
-                                        <div className="aspect-square bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center overflow-hidden relative">
+                                        <div className="aspect-square bg-white flex items-center justify-center overflow-hidden relative">
                                             {imageError[product.id] ? (
                                                 <div className="text-6xl">🍞</div>
                                             ) : (
                                                 <img 
                                                     src={product.imageUrl} 
                                                     alt={product.name}
-                                                    className="w-full h-full object-cover" // Removed hover scale effect on image to indicate it's static
+                                                    className="w-full h-full object-cover"
                                                     onError={() => handleImageError(product.id)}
                                                 />
                                             )}
                                         </div>
                                         <div className="p-4">
                                             <h3 className="font-bold text-xl text-gray-800">{product.name}</h3>
-                                            <p className="text-gray-600 text-sm mt-1">{product.description}</p>
+                                            <p className="text-gray-600 text-sm mt-1 h-10">{product.description}</p>
                                             <div className="mt-3 flex justify-between items-center">
                                                 <span className="text-2xl font-bold text-orange-600">{product.price.toFixed(2)} €</span>
                                                 <button 
@@ -594,6 +619,11 @@
                                         </div>
                                     </div>
                                 ))}
+                                {filteredProducts.length === 0 && (
+                                    <p className="text-gray-600 md:col-span-2 lg:col-span-3 text-center py-8">
+                                        Keine Produkte für "{searchTerm}" gefunden.
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -603,7 +633,7 @@
             // Cart View
             if (view === 'cart') {
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-4">
+                    <div className="min-h-screen p-4">
                         <div className="max-w-4xl mx-auto">
                             <div className="bg-white rounded-lg shadow-lg p-6">
                                 <div className="flex justify-between items-center mb-6">
@@ -623,7 +653,7 @@
                                         <div className="space-y-4 mb-6">
                                             {cart.map(item => (
                                                 <div key={item.id} className="flex items-center gap-4 border-b pb-4">
-                                                    <div className="w-16 h-16 bg-gradient-to-br from-orange-100 to-red-100 rounded-lg overflow-hidden flex-shrink-0">
+                                                    <div className="w-16 h-16 bg-white rounded-lg overflow-hidden flex-shrink-0">
                                                         {imageError[item.id] ? (
                                                             <div className="w-full h-full flex items-center justify-center text-2xl">🍞</div>
                                                         ) : (
@@ -691,15 +721,16 @@
                                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 h-24 focus:ring-2 focus:ring-orange-200 focus:outline-none"
                                             />
                                         </div>
-
+                                        
+                                        {/* Angepasste Kostenanzeige */}
                                         <div className="border-t pt-4 space-y-2">
                                             <div className="flex justify-between">
                                                 <span>Zwischensumme:</span>
-                                                <span>{(calculateTotal() - deliveryCost).toFixed(2)} €</span>
+                                                <span>{(calculateTotal() - calculateDeliveryCost()).toFixed(2)} €</span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span>Lieferkosten:</span>
-                                                <span>{deliveryCost.toFixed(2)} €</span>
+                                                <span className="text-gray-600">Lieferkosten ({deliveryRate.toFixed(2)} € pro Produkt):</span>
+                                                <span className="text-gray-600">{calculateDeliveryCost().toFixed(2)} €</span>
                                             </div>
                                             <div className="flex justify-between text-xl font-bold text-orange-600 border-t pt-2">
                                                 <span>Gesamt:</span>
@@ -728,7 +759,7 @@
             // Admin Login
             if (view === 'adminLogin') {
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-4 flex items-center justify-center">
+                    <div className="min-h-screen p-4 flex items-center justify-center">
                         <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-2xl font-bold text-gray-800">Mitarbeiter Login</h2>
@@ -762,7 +793,7 @@
             // Admin View - Orders
             if (view === 'admin' && isAdmin) {
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-4">
+                    <div className="min-h-screen p-4">
                         <div className="max-w-6xl mx-auto">
                             <header className="bg-white rounded-lg shadow-lg p-6 mb-6">
                                 <div className="flex justify-between items-center">
@@ -827,8 +858,12 @@
                                                         <span>{(item.price * item.quantity).toFixed(2)} €</span>
                                                     </div>
                                                 ))}
-                                                <div className="border-t pt-2 flex justify-between font-bold text-orange-600">
-                                                    <span>Gesamt (inkl. Lieferung):</span>
+                                                <div className="border-t pt-2 flex justify-between">
+                                                    <span className="text-sm">Lieferkosten:</span>
+                                                    <span className="text-sm">{(order.deliveryCost || 0).toFixed(2)} €</span>
+                                                </div>
+                                                <div className="flex justify-between font-bold text-orange-600">
+                                                    <span>Gesamt:</span>
                                                     <span>{order.total.toFixed(2)} €</span>
                                                 </div>
                                             </div>
@@ -851,7 +886,7 @@
             // Admin View - Products Management
             if (view === 'adminProducts' && isAdmin) {
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-4">
+                    <div className="min-h-screen p-4">
                         <div className="max-w-6xl mx-auto">
                             <header className="bg-white rounded-lg shadow-lg p-6 mb-6">
                                 <div className="flex justify-between items-center">
@@ -964,7 +999,7 @@
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {products.map(product => (
                                     <div key={product.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-                                        <div className="aspect-square bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center overflow-hidden">
+                                        <div className="aspect-square bg-white flex items-center justify-center overflow-hidden">
                                             {imageError[product.id] ? (
                                                 <div className="text-6xl">🍞</div>
                                             ) : (
