@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wartungsarbeiten</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+```
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        color: #fff;
+    }
+
+    .container {
+        text-align: center;
+        padding: 40px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        margin: 20px;
+    }
+
+    .icon {
+        font-size: 80px;
+        margin-bottom: 20px;
+        animation: rotate 3s linear infinite;
+    }
+
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    h1 {
+        font-size: 2.5em;
+        margin-bottom: 20px;
+        font-weight: 600;
+    }
+
+    p {
+        font-size: 1.2em;
+        line-height: 1.6;
+        margin-bottom: 15px;
+        opacity: 0.9;
+    }
+
+    .time {
+        font-size: 1em;
+        margin-top: 30px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        font-weight: 500;
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="container">
+        <div class="icon">⚙️</div>
+        <h1>Wartungsarbeiten</h1>
+        <p>Wir führen gerade wichtige Wartungsarbeiten durch, um unseren Service für Sie zu verbessern.</p>
+        <p>Bitte haben Sie einen Moment Geduld.</p>
+        <div class="time">
+            Wir sind bald wieder für Sie da!
+        </div>
+    </div>
+</body>
+</html>
